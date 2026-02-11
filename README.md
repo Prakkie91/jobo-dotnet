@@ -1,19 +1,13 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Prakkie91/jobo-dotnet/main/jobo-logo.png" alt="Jobo" width="120" />
-</p>
+<img src="https://raw.githubusercontent.com/Prakkie91/jobo-dotnet/main/jobo-logo.png" alt="Jobo" width="120" />
 
-<h1 align="center">Jobo Enterprise — .NET Client</h1>
+# Jobo Enterprise — .NET Client
 
-<p align="center">
-  <strong>Access millions of job listings from 45+ ATS platforms with a single API.</strong><br/>
-  Build job boards, power job aggregators, or sync ATS data — Greenhouse, Lever, Workday, iCIMS, and more.
-</p>
+**Access millions of job listings from 45+ ATS platforms with a single API.**  
+Build job boards, power job aggregators, or sync ATS data — Greenhouse, Lever, Workday, iCIMS, and more.
 
-<p align="center">
-  <a href="https://www.nuget.org/packages/Jobo.Enterprise.Client"><img src="https://img.shields.io/nuget/v/Jobo.Enterprise.Client" alt="NuGet" /></a>
-  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-6.0%20%7C%208.0-blue" alt=".NET" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-</p>
+[![NuGet](https://img.shields.io/nuget/v/Jobo.Enterprise.Client)](https://www.nuget.org/packages/Jobo.Enterprise.Client)
+[![.NET](https://img.shields.io/badge/.NET-6.0%20%7C%208.0-blue)](https://dotnet.microsoft.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
