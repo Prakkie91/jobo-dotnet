@@ -1,0 +1,256 @@
+using Jobo.Enterprise.Client;
+using Jobo.Enterprise.Client.Exceptions;
+using Jobo.Enterprise.Client.Models;
+
+namespace Jobo.Enterprise.Client.Tests;
+
+/// <summary>
+/// Integration tests that call the live Jobo Enterprise API.
+/// Requires the JOBO_API_KEY environment variable to be set.
+/// Tests are skipped gracefully when the key is not available (local dev).
+/// </summary>
+public class IntegrationTests : IDisposable
+{
+    private readonly JoboClient? _client;
+    private readonly string? _skipReason;
+
+    public IntegrationTests()
+    {
+        var apiKey = Environment.GetEnvironmentVariable("JOBO_API_KEY");
+        var baseUrl = Environment.GetEnvironmentVariable("JOBO_BASE_URL") ?? "https://jobs-api.jobo.world";
+
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _skipReason = "JOBO_API_KEY environment variable is not set.";
+            return;
+        }
+
+        _client = new JoboClient(new JoboClientOptions
+        {
+            ApiKey = apiKey,
+            BaseUrl = baseUrl,
+            Timeout = TimeSpan.FromSeconds(30)
+        });
+    }
+
+    private JoboClient Client => _client ?? throw new SkipException(_skipReason!);
+
+    // ── Feed ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetJobsFeed_ReturnsJobs()
+    {
+        if (_client is null) return; // skip
+
+        var response = await Client.GetJobsFeedAsync(new JobFeedRequest { BatchSize = 5 });
+
+        Assert.NotNull(response);
+        Assert.NotEmpty(response.Jobs);
+        Assert.True(response.Jobs.Count <= 5);
+
+        var job = response.Jobs[0];
+        Assert.NotEqual(Guid.Empty, job.Id);
+        Assert.False(string.IsNullOrEmpty(job.Title));
+        Assert.False(string.IsNullOrEmpty(job.Description));
+        Assert.False(string.IsNullOrEmpty(job.ListingUrl));
+        Assert.False(string.IsNullOrEmpty(job.Source));
+        Assert.NotNull(job.Company);
+        Assert.False(string.IsNullOrEmpty(job.Company.Name));
+    }
+
+    [Fact]
+    public async Task GetJobsFeed_WithLocationFilter_ReturnsJobs()
+    {
+        if (_client is null) return;
+
+        var response = await Client.GetJobsFeedAsync(new JobFeedRequest
+        {
+            Locations = new List<LocationFilter>
+            {
+                new() { Country = "US" }
+            },
+            BatchSize = 5
+        });
+
+        Assert.NotNull(response);
+        Assert.NotEmpty(response.Jobs);
+    }
+
+    [Fact]
+    public async Task GetJobsFeed_Pagination_CursorWorks()
+    {
+        if (_client is null) return;
+
+        var first = await Client.GetJobsFeedAsync(new JobFeedRequest { BatchSize = 2 });
+        Assert.NotEmpty(first.Jobs);
+
+        if (!first.HasMore) return; // small dataset, can't test pagination
+
+        Assert.False(string.IsNullOrEmpty(first.NextCursor));
+
+        var second = await Client.GetJobsFeedAsync(new JobFeedRequest
+        {
+            Cursor = first.NextCursor,
+            BatchSize = 2
+        });
+
+        Assert.NotNull(second);
+        Assert.NotEmpty(second.Jobs);
+        // Ensure we got different jobs
+        Assert.NotEqual(first.Jobs[0].Id, second.Jobs[0].Id);
+    }
+
+    [Fact]
+    public async Task EnumerateJobsFeed_YieldsJobs()
+    {
+        if (_client is null) return;
+
+        var jobs = new List<Job>();
+        await foreach (var job in Client.EnumerateJobsFeedAsync(new JobFeedRequest { BatchSize = 3 }))
+        {
+            jobs.Add(job);
+            if (jobs.Count >= 5) break; // limit for test speed
+        }
+
+        Assert.NotEmpty(jobs);
+    }
+
+    // ── Expired ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetExpiredJobIds_ReturnsResponse()
+    {
+        if (_client is null) return;
+
+        var response = await Client.GetExpiredJobIdsAsync(
+            expiredSince: DateTime.UtcNow.AddDays(-7),
+            batchSize: 5
+        );
+
+        Assert.NotNull(response);
+        // May be empty if no jobs expired recently, but should not throw
+        Assert.NotNull(response.JobIds);
+    }
+
+    // ── Search ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SearchJobs_ReturnsResults()
+    {
+        if (_client is null) return;
+
+        var response = await Client.SearchJobsAsync(q: "software engineer", pageSize: 5);
+
+        Assert.NotNull(response);
+        Assert.NotEmpty(response.Jobs);
+        Assert.True(response.Total > 0);
+        Assert.True(response.TotalPages >= 1);
+        Assert.Equal(1, response.Page);
+    }
+
+    [Fact]
+    public async Task SearchJobsAdvanced_ReturnsResults()
+    {
+        if (_client is null) return;
+
+        var response = await Client.SearchJobsAdvancedAsync(new JobSearchRequest
+        {
+            Queries = new List<string> { "data engineer" },
+            PageSize = 5
+        });
+
+        Assert.NotNull(response);
+        Assert.NotEmpty(response.Jobs);
+        Assert.True(response.Total > 0);
+    }
+
+    [Fact]
+    public async Task SearchJobsAdvanced_WithLocationFilter_ReturnsResults()
+    {
+        if (_client is null) return;
+
+        var response = await Client.SearchJobsAdvancedAsync(new JobSearchRequest
+        {
+            Queries = new List<string> { "developer" },
+            Locations = new List<string> { "New York" },
+            PageSize = 5
+        });
+
+        Assert.NotNull(response);
+        // May return 0 results for very specific filters, but should not throw
+    }
+
+    [Fact]
+    public async Task EnumerateSearchJobs_YieldsJobs()
+    {
+        if (_client is null) return;
+
+        var jobs = new List<Job>();
+        await foreach (var job in Client.EnumerateSearchJobsAsync(new JobSearchRequest
+        {
+            Queries = new List<string> { "engineer" },
+            PageSize = 3
+        }))
+        {
+            jobs.Add(job);
+            if (jobs.Count >= 5) break;
+        }
+
+        Assert.NotEmpty(jobs);
+    }
+
+    // ── Error handling ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task InvalidApiKey_ThrowsAuthenticationException()
+    {
+        using var badClient = new JoboClient(new JoboClientOptions
+        {
+            ApiKey = "invalid-key-12345",
+            BaseUrl = Environment.GetEnvironmentVariable("JOBO_BASE_URL") ?? "https://jobs-api.jobo.world"
+        });
+
+        await Assert.ThrowsAsync<JoboAuthenticationException>(
+            () => badClient.GetJobsFeedAsync(new JobFeedRequest { BatchSize = 1 })
+        );
+    }
+
+    // ── Job model validation ────────────────────────────────────────
+
+    [Fact]
+    public async Task Job_HasExpectedFields()
+    {
+        if (_client is null) return;
+
+        var response = await Client.SearchJobsAsync(q: "engineer", pageSize: 1);
+        Assert.NotEmpty(response.Jobs);
+
+        var job = response.Jobs[0];
+        Assert.NotEqual(Guid.Empty, job.Id);
+        Assert.False(string.IsNullOrEmpty(job.Title));
+        Assert.NotNull(job.Company);
+        Assert.NotEqual(Guid.Empty, job.Company.Id);
+        Assert.False(string.IsNullOrEmpty(job.Company.Name));
+        Assert.False(string.IsNullOrEmpty(job.Description));
+        Assert.False(string.IsNullOrEmpty(job.ListingUrl));
+        Assert.False(string.IsNullOrEmpty(job.ApplyUrl));
+        Assert.False(string.IsNullOrEmpty(job.Source));
+        Assert.False(string.IsNullOrEmpty(job.SourceId));
+        Assert.NotEqual(default, job.CreatedAt);
+        Assert.NotEqual(default, job.UpdatedAt);
+    }
+
+    public void Dispose()
+    {
+        _client?.Dispose();
+    }
+}
+
+/// <summary>
+/// Custom exception to signal test skipping when API key is not available.
+/// xunit will report these as failures, but the test body returns early.
+/// </summary>
+internal class SkipException : Exception
+{
+    public SkipException(string message) : base(message) { }
+}
