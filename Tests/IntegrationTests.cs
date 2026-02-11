@@ -1,3 +1,4 @@
+using Xunit;
 using Jobo.Enterprise.Client;
 using Jobo.Enterprise.Client.Exceptions;
 using Jobo.Enterprise.Client.Models;
@@ -123,7 +124,7 @@ public class IntegrationTests : IDisposable
         if (_client is null) return;
 
         var response = await Client.GetExpiredJobIdsAsync(
-            expiredSince: DateTime.UtcNow.AddDays(-7),
+            expiredSince: DateTime.UtcNow.AddDays(-6),
             batchSize: 5
         );
 
