@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net6.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Jobo.Enterprise.Client</RootNamespace>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>Jobo.Enterprise.Client</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Jobo AI</Authors>
+    <Company>Jobo AI</Company>
+    <Description>Official .NET client library for the Jobo Enterprise Jobs API. Access millions of job listings from 15+ ATS platforms.</Description>
+    <PackageTags>jobo;jobs;api;enterprise;job-board;recruitment;ats;greenhouse;lever;workday</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/jobo-ai/jobo-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jobo-ai/jobo-dotnet.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+</Project>
