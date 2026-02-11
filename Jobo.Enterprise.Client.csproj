@@ -9,7 +9,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Jobo.Enterprise.Client</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.1.1</Version>
     <Authors>Jobo</Authors>
     <Company>Jobo</Company>
     <Description>Official .NET client library for the Jobo Enterprise Jobs API. Access millions of job listings from 45+ ATS platforms including Greenhouse, Lever, Workday, iCIMS, SmartRecruiters, BambooHR, Ashby, and more. Build job boards, power job aggregators, or sync ATS data.</Description>
