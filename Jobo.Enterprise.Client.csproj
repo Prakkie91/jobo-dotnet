@@ -10,13 +10,14 @@
     <!-- NuGet Package Metadata -->
     <PackageId>Jobo.Enterprise.Client</PackageId>
     <Version>1.0.0</Version>
-    <Authors>Jobo AI</Authors>
-    <Company>Jobo AI</Company>
-    <Description>Official .NET client library for the Jobo Enterprise Jobs API. Access millions of job listings from 15+ ATS platforms.</Description>
-    <PackageTags>jobo;jobs;api;enterprise;job-board;recruitment;ats;greenhouse;lever;workday</PackageTags>
+    <Authors>Jobo</Authors>
+    <Company>Jobo</Company>
+    <Description>Official .NET client library for the Jobo Enterprise Jobs API. Access millions of job listings from 45+ ATS platforms including Greenhouse, Lever, Workday, iCIMS, SmartRecruiters, BambooHR, Ashby, and more. Build job boards, power job aggregators, or sync ATS data.</Description>
+    <PackageTags>jobo;jobs;api;enterprise;job-board;recruitment;ats;greenhouse;lever;workday;smartrecruiters;ashby;bamboohr;icims;job-scraper;job-listings;job-data;job-aggregator;job-feed;applicant-tracking-system;hiring;job-search-api</PackageTags>
+    <PackageIcon>jobo-logo.png</PackageIcon>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/jobo-ai/jobo-dotnet</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/jobo-ai/jobo-dotnet.git</RepositoryUrl>
+    <PackageProjectUrl>https://jobo.world/enterprise/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Prakkie91/jobo-dotnet.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -25,6 +26,7 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="LICENSE" Pack="true" PackagePath="\" />
+    <None Include="jobo-logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,10 +1,37 @@
-# Jobo Enterprise .NET Client
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Prakkie91/jobo-dotnet/main/jobo-logo.png" alt="Jobo" width="120" />
+</p>
 
-Official .NET client library for the [Jobo Enterprise Jobs API](https://api.jobo.ai). Access millions of job listings from 15+ ATS platforms including Greenhouse, Lever, Workday, SmartRecruiters, and more.
+<h1 align="center">Jobo Enterprise — .NET Client</h1>
 
-[![NuGet](https://img.shields.io/nuget/v/Jobo.Enterprise.Client)](https://www.nuget.org/packages/Jobo.Enterprise.Client)
-[![.NET](https://img.shields.io/badge/.NET-6.0%20%7C%208.0-blue)](https://dotnet.microsoft.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <strong>Access millions of job listings from 45+ ATS platforms with a single API.</strong><br/>
+  Build job boards, power job aggregators, or sync ATS data — Greenhouse, Lever, Workday, iCIMS, and more.
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/Jobo.Enterprise.Client"><img src="https://img.shields.io/nuget/v/Jobo.Enterprise.Client" alt="NuGet" /></a>
+  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-6.0%20%7C%208.0-blue" alt=".NET" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
+
+---
+
+## Why Jobo Enterprise?
+
+- **45+ ATS integrations** — Greenhouse, Lever, Workday, iCIMS, SmartRecruiters, BambooHR, Ashby, and many more
+- **Bulk feed endpoint** — Cursor-based pagination to sync millions of jobs efficiently
+- **Real-time search** — Full-text search with location, remote, and source filters
+- **Expired job sync** — Keep your job board fresh by removing stale listings
+- **ASP.NET Core DI** — First-class dependency injection support
+- **Strongly typed** — Complete model definitions with `System.Text.Json` serialization
+- **IAsyncEnumerable** — Stream results with `await foreach` for auto-pagination
+
+> **Get your API key** → [enterprise.jobo.world/api-keys](https://enterprise.jobo.world/api-keys)
+>
+> **Learn more** → [jobo.world/enterprise](https://jobo.world/enterprise/)
+
+---
 
 ## Installation
 
@@ -25,29 +52,27 @@ using Jobo.Enterprise.Client;
 
 using var client = new JoboClient(new JoboClientOptions { ApiKey = "your-api-key" });
 
-var results = await client.SearchJobsAsync(q: "software engineer", location: "San Francisco");
+// Search for software engineering jobs from Greenhouse
+var results = await client.SearchJobsAsync(
+    q: "software engineer",
+    location: "San Francisco",
+    sources: "greenhouse,lever"
+);
+
 foreach (var job in results.Jobs)
 {
-    Console.WriteLine($"{job.Title} at {job.Company.Name}");
+    Console.WriteLine($"{job.Title} at {job.Company.Name} — {job.ListingUrl}");
 }
 ```
 
 ## Authentication
 
-All API requests require an API key passed via the `X-Api-Key` header. The client handles this automatically:
+Get your API key at **[enterprise.jobo.world/api-keys](https://enterprise.jobo.world/api-keys)**.
+
+All requests require an API key passed via the `X-Api-Key` header. The client handles this automatically:
 
 ```csharp
 var client = new JoboClient(new JoboClientOptions { ApiKey = "your-api-key" });
-```
-
-For self-hosted deployments:
-
-```csharp
-var client = new JoboClient(new JoboClientOptions
-{
-    ApiKey = "your-api-key",
-    BaseUrl = "https://your-instance.example.com"
-});
 ```
 
 ## Dependency Injection
@@ -60,7 +85,6 @@ using Jobo.Enterprise.Client.Extensions;
 builder.Services.AddJoboClient(options =>
 {
     options.ApiKey = builder.Configuration["Jobo:ApiKey"]!;
-    options.BaseUrl = "https://api.jobo.ai";
     options.Timeout = TimeSpan.FromSeconds(60);
 });
 ```
@@ -85,9 +109,9 @@ public class MyService(JoboClient jobo)
 
 ## Usage
 
-### Job Search (Simple)
+### Search Jobs (Simple)
 
-Search jobs with simple query parameters:
+Search jobs with query parameters — ideal for building job board search pages:
 
 ```csharp
 var results = await client.SearchJobsAsync(
@@ -106,7 +130,7 @@ foreach (var job in results.Jobs)
 }
 ```
 
-### Job Search (Advanced)
+### Search Jobs (Advanced)
 
 Use the advanced endpoint for multiple queries and locations:
 
@@ -139,9 +163,9 @@ await foreach (var job in client.EnumerateSearchJobsAsync(new JobSearchRequest
 }
 ```
 
-### Jobs Feed (Bulk)
+### Bulk Jobs Feed
 
-Fetch large batches of active jobs using cursor-based pagination:
+Fetch large batches of active jobs using cursor-based pagination — perfect for building a job aggregator or syncing to your database:
 
 ```csharp
 var response = await client.GetJobsFeedAsync(new JobFeedRequest
@@ -180,13 +204,13 @@ await foreach (var job in client.EnumerateJobsFeedAsync(new JobFeedRequest
     BatchSize = 1000
 }))
 {
-    await ProcessJobAsync(job);
+    await SaveToDatabaseAsync(job);
 }
 ```
 
 ### Expired Job IDs
 
-Sync expired jobs to keep your data fresh:
+Keep your job board fresh by syncing expired listings:
 
 ```csharp
 var expiredSince = DateTime.UtcNow.AddDays(-1);
@@ -210,7 +234,7 @@ try
 }
 catch (JoboAuthenticationException)
 {
-    Console.WriteLine("Invalid API key");
+    Console.WriteLine("Invalid API key — get one at https://enterprise.jobo.world/api-keys");
 }
 catch (JoboRateLimitException ex)
 {
@@ -245,20 +269,26 @@ All response data is returned as strongly-typed models:
 | `ExpiredJobIdsResponse` | Expired job IDs with cursor pagination |
 | `JobSearchResponse` | Search response with page-based pagination |
 
-## Supported Sources
+## Supported ATS Sources (45+)
+
+Filter jobs by any of these applicant tracking systems:
 
 | Category | Sources |
 |---|---|
-| **Tech/Startup** | `greenhouse`, `lever`, `ashby`, `workable`, `rippling`, `polymer` |
-| **Enterprise** | `workday`, `smartrecruiters` |
-| **SMB** | `bamboohr`, `breezy`, `jazzhr`, `recruitee`, `personio` |
+| **Enterprise ATS** | `workday`, `smartrecruiters`, `icims`, `successfactors`, `oraclecloud`, `taleo`, `dayforce`, `csod` (Cornerstone), `adp`, `ultipro`, `paycom` |
+| **Tech & Startup** | `greenhouse`, `lever_co`, `ashby`, `workable`, `workable_jobs`, `rippling`, `polymer`, `gem`, `pinpoint`, `homerun` |
+| **Mid-Market** | `bamboohr`, `breezy`, `jazzhr`, `recruitee`, `personio`, `jobvite`, `teamtailor`, `comeet`, `trakstar`, `zoho` |
+| **SMB & Niche** | `gohire`, `recooty`, `applicantpro`, `hiringthing`, `careerplug`, `hirehive`, `kula`, `careerpuck`, `talnet`, `jobscore` |
+| **Specialized** | `freshteam`, `isolved`, `joincom`, `eightfold`, `phenompeople` (via `eightfold`) |
+
+> Pass source identifiers in the `Sources` parameter, e.g. `Sources = ["greenhouse", "lever_co", "workday"]`
 
 ## Configuration
 
 | Property | Default | Description |
 |---|---|---|
-| `ApiKey` | *required* | Your Jobo Enterprise API key |
-| `BaseUrl` | `https://api.jobo.ai` | API base URL |
+| `ApiKey` | *required* | Your Jobo Enterprise API key ([get one here](https://enterprise.jobo.world/api-keys)) |
+| `BaseUrl` | `https://jobs-api.jobo.world` | API base URL |
 | `Timeout` | `00:00:30` | Request timeout |
 
 ## Custom HttpClient
@@ -266,7 +296,7 @@ All response data is returned as strongly-typed models:
 You can provide your own `HttpClient` for advanced scenarios (e.g., Polly retry policies):
 
 ```csharp
-var httpClient = new HttpClient { BaseAddress = new Uri("https://api.jobo.ai") };
+var httpClient = new HttpClient { BaseAddress = new Uri("https://jobs-api.jobo.world") };
 httpClient.DefaultRequestHeaders.Add("X-Api-Key", "your-api-key");
 
 var client = new JoboClient(httpClient);
@@ -277,18 +307,62 @@ var client = new JoboClient(httpClient);
 - .NET 8.0
 - .NET 6.0
 
+## Use Cases
+
+- **Build a job board** — Search and display jobs from 45+ ATS platforms
+- **Job aggregator** — Bulk-sync millions of listings with the feed endpoint
+- **ATS data pipeline** — Pull jobs from Greenhouse, Lever, Workday, etc. into your data warehouse
+- **Recruitment tools** — Power candidate-facing job search experiences
+- **Market research** — Analyze hiring trends across companies and industries
+
 ## Development
 
 ```bash
-git clone https://github.com/jobo-ai/jobo-dotnet.git
+git clone https://github.com/Prakkie91/jobo-dotnet.git
 cd jobo-dotnet
 
 # Build
 dotnet build
 
+# Test
+dotnet test
+
 # Pack
 dotnet pack -c Release
 ```
+
+## Publishing to NuGet
+
+```bash
+# Build the package
+dotnet pack -c Release
+
+# Push to NuGet (replace YOUR_NUGET_API_KEY)
+dotnet nuget push bin/Release/Jobo.Enterprise.Client.*.nupkg --api-key YOUR_NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+
+# Tag and push to GitHub
+git tag v$(grep -oPm1 '(?<=<Version>)[^<]+' Jobo.Enterprise.Client.csproj)
+git push origin main --tags
+```
+
+## Pushing to GitHub
+
+```bash
+# Initial setup (one-time)
+git remote set-url origin https://github.com/Prakkie91/jobo-dotnet.git
+
+# Push
+git add -A
+git commit -m "release: v$(grep -oPm1 '(?<=<Version>)[^<]+' Jobo.Enterprise.Client.csproj)"
+git push origin main
+```
+
+## Links
+
+- **Website** — [jobo.world/enterprise](https://jobo.world/enterprise/)
+- **Get API Key** — [enterprise.jobo.world/api-keys](https://enterprise.jobo.world/api-keys)
+- **GitHub** — [github.com/Prakkie91/jobo-dotnet](https://github.com/Prakkie91/jobo-dotnet)
+- **NuGet** — [nuget.org/packages/Jobo.Enterprise.Client](https://www.nuget.org/packages/Jobo.Enterprise.Client)
 
 ## License
 
