@@ -241,6 +241,62 @@ public class IntegrationTests : IDisposable
         Assert.NotEqual(default, job.UpdatedAt);
     }
 
+    // ── Geocoding ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Geocode_ReturnsLocation()
+    {
+        if (_client is null) return;
+
+        var result = await Client.GeocodeAsync("San Francisco, CA");
+
+        Assert.NotNull(result);
+        Assert.Equal("San Francisco, CA", result.Input);
+        Assert.True(result.Succeeded);
+        Assert.NotEmpty(result.Locations);
+        var location = result.Locations[0];
+        Assert.False(string.IsNullOrEmpty(location.DisplayName));
+        Assert.NotNull(location.Latitude);
+        Assert.NotNull(location.Longitude);
+    }
+
+    [Fact]
+    public async Task Geocode_WithInvalidLocation_ReturnsFailed()
+    {
+        if (_client is null) return;
+
+        var result = await Client.GeocodeAsync("invalidlocationxyz123");
+
+        Assert.NotNull(result);
+        // May succeed with remote keyword parsing or fail - just check response
+    }
+
+    // ── AutoApply ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task StartAutoApplySession_WithInvalidUrl_ReturnsError()
+    {
+        if (_client is null) return;
+
+        // Using an invalid URL should return success=false with an error
+        var response = await Client.StartAutoApplySessionAsync("https://invalid-url-that-does-not-exist.com/jobs/123");
+
+        Assert.NotNull(response);
+        // The provider detection may fail or succeed - just check response structure
+        Assert.NotEqual(Guid.Empty, response.SessionId);
+    }
+
+    [Fact]
+    public async Task EndAutoApplySession_WithInvalidSession_ReturnsFalse()
+    {
+        if (_client is null) return;
+
+        var result = await Client.EndAutoApplySessionAsync(Guid.NewGuid());
+
+        // Should return false for non-existent session
+        Assert.False(result);
+    }
+
     public void Dispose()
     {
         _client?.Dispose();

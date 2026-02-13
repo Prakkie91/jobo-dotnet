@@ -2,8 +2,7 @@
 
 # Jobo Enterprise — .NET Client
 
-**Access millions of job listings from 45+ ATS platforms with a single API.**  
-Build job boards, power job aggregators, or sync ATS data — Greenhouse, Lever, Workday, iCIMS, and more.
+**Access millions of job listings, geocode locations, and automate job applications — all from a single API.**
 
 [![NuGet](https://img.shields.io/nuget/v/Jobo.Enterprise.Client)](https://www.nuget.org/packages/Jobo.Enterprise.Client)
 [![.NET](https://img.shields.io/badge/.NET-6.0%20%7C%208.0-blue)](https://dotnet.microsoft.com/)
@@ -11,19 +10,16 @@ Build job boards, power job aggregators, or sync ATS data — Greenhouse, Lever,
 
 ---
 
-## Why Jobo Enterprise?
+## Features
 
-- **45+ ATS integrations** — Greenhouse, Lever, Workday, iCIMS, SmartRecruiters, BambooHR, Ashby, and many more
-- **Bulk feed endpoint** — Cursor-based pagination to sync millions of jobs efficiently
-- **Real-time search** — Full-text search with location, remote, and source filters
-- **Expired job sync** — Keep your job board fresh by removing stale listings
-- **ASP.NET Core DI** — First-class dependency injection support
-- **Strongly typed** — Complete model definitions with `System.Text.Json` serialization
-- **IAsyncEnumerable** — Stream results with `await foreach` for auto-pagination
+| Sub-client          | Property           | Description                                              |
+| ------------------- | ------------------ | -------------------------------------------------------- |
+| **Jobs Feed**       | `client.Feed`      | Bulk job feed with cursor-based pagination (45+ ATS)     |
+| **Jobs Search**     | `client.Search`    | Full-text search with location, remote, and source filters |
+| **Locations**       | `client.Locations` | Geocode location strings into structured coordinates     |
+| **Auto Apply**      | `client.AutoApply` | Automate job applications with form field discovery      |
 
 > **Get your API key** → [enterprise.jobo.world/api-keys](https://enterprise.jobo.world/api-keys)
->
-> **Learn more** → [jobo.world/enterprise](https://jobo.world/enterprise/)
 
 ---
 
@@ -33,45 +29,31 @@ Build job boards, power job aggregators, or sync ATS data — Greenhouse, Lever,
 dotnet add package Jobo.Enterprise.Client
 ```
 
-Or via the NuGet Package Manager:
-
-```
-Install-Package Jobo.Enterprise.Client
-```
-
 ## Quick Start
 
 ```csharp
 using Jobo.Enterprise.Client;
+using Jobo.Enterprise.Client.Models;
 
 using var client = new JoboClient(new JoboClientOptions { ApiKey = "your-api-key" });
 
-// Search for software engineering jobs from Greenhouse
-var results = await client.SearchJobsAsync(
-    q: "software engineer",
-    location: "San Francisco",
-    sources: "greenhouse,lever"
-);
-
+// Search for jobs
+var results = await client.Search.SearchAsync(q: "software engineer", location: "San Francisco");
 foreach (var job in results.Jobs)
-{
-    Console.WriteLine($"{job.Title} at {job.Company.Name} — {job.ListingUrl}");
-}
+    Console.WriteLine($"{job.Title} at {job.Company.Name}");
+
+// Geocode a location
+var geo = await client.Locations.GeocodeAsync("London, UK");
+Console.WriteLine($"{geo.Locations[0].DisplayName}: {geo.Locations[0].Latitude}, {geo.Locations[0].Longitude}");
 ```
 
 ## Authentication
-
-Get your API key at **[enterprise.jobo.world/api-keys](https://enterprise.jobo.world/api-keys)**.
-
-All requests require an API key passed via the `X-Api-Key` header. The client handles this automatically:
 
 ```csharp
 var client = new JoboClient(new JoboClientOptions { ApiKey = "your-api-key" });
 ```
 
 ## Dependency Injection
-
-Register the client in your ASP.NET Core application:
 
 ```csharp
 using Jobo.Enterprise.Client.Extensions;
@@ -83,55 +65,88 @@ builder.Services.AddJoboClient(options =>
 });
 ```
 
-Or with a simple API key:
-
-```csharp
-builder.Services.AddJoboClient(builder.Configuration["Jobo:ApiKey"]!);
-```
-
-Then inject it:
+Then inject and use sub-clients:
 
 ```csharp
 public class MyService(JoboClient jobo)
 {
     public async Task DoWorkAsync()
     {
-        var results = await jobo.SearchJobsAsync(q: "engineer");
+        var results = await jobo.Search.SearchAsync(q: "engineer");
+        var geo = await jobo.Locations.GeocodeAsync("Berlin, DE");
     }
 }
 ```
 
-## Usage
+---
 
-### Search Jobs (Simple)
+## Jobs Feed — `client.Feed`
 
-Search jobs with query parameters — ideal for building job board search pages:
+Bulk-sync millions of active jobs using cursor-based pagination.
+
+### Fetch a batch
 
 ```csharp
-var results = await client.SearchJobsAsync(
+var response = await client.Feed.GetJobsAsync(new JobFeedRequest
+{
+    Locations = [
+        new LocationFilter { Country = "US", Region = "California" },
+        new LocationFilter { Country = "US", City = "New York" }
+    ],
+    Sources = ["greenhouse", "workday"],
+    IsRemote = true,
+    BatchSize = 1000
+});
+
+Console.WriteLine($"Got {response.Jobs.Count} jobs, HasMore={response.HasMore}");
+```
+
+### Auto-paginate all jobs
+
+```csharp
+await foreach (var job in client.Feed.EnumerateJobsAsync(new JobFeedRequest
+{
+    Sources = ["greenhouse"],
+    BatchSize = 1000
+}))
+{
+    await SaveToDatabaseAsync(job);
+}
+```
+
+### Expired job IDs
+
+```csharp
+await foreach (var jobId in client.Feed.EnumerateExpiredJobIdsAsync(DateTime.UtcNow.AddDays(-1)))
+{
+    await MarkAsExpiredAsync(jobId);
+}
+```
+
+---
+
+## Jobs Search — `client.Search`
+
+Full-text search with filters and page-based pagination.
+
+### Simple search
+
+```csharp
+var results = await client.Search.SearchAsync(
     q: "data scientist",
     location: "New York",
     sources: "greenhouse,lever",
     remote: true,
-    page: 1,
     pageSize: 50
 );
 
 Console.WriteLine($"Found {results.Total} jobs across {results.TotalPages} pages");
-foreach (var job in results.Jobs)
-{
-    Console.WriteLine($"  {job.Title} at {job.Company.Name} — {job.ListingUrl}");
-}
 ```
 
-### Search Jobs (Advanced)
-
-Use the advanced endpoint for multiple queries and locations:
+### Advanced search (multiple queries & locations)
 
 ```csharp
-using Jobo.Enterprise.Client.Models;
-
-var results = await client.SearchJobsAdvancedAsync(new JobSearchRequest
+var results = await client.Search.SearchAdvancedAsync(new JobSearchRequest
 {
     Queries = ["machine learning engineer", "ML engineer", "AI engineer"],
     Locations = ["San Francisco", "New York", "Remote"],
@@ -141,12 +156,10 @@ var results = await client.SearchJobsAdvancedAsync(new JobSearchRequest
 });
 ```
 
-### Auto-Paginated Search
-
-Iterate over all matching jobs without managing pagination:
+### Auto-paginate all results
 
 ```csharp
-await foreach (var job in client.EnumerateSearchJobsAsync(new JobSearchRequest
+await foreach (var job in client.Search.EnumerateAsync(new JobSearchRequest
 {
     Queries = ["backend engineer"],
     Locations = ["London"],
@@ -157,78 +170,63 @@ await foreach (var job in client.EnumerateSearchJobsAsync(new JobSearchRequest
 }
 ```
 
-### Bulk Jobs Feed
+---
 
-Fetch large batches of active jobs using cursor-based pagination — perfect for building a job aggregator or syncing to your database:
+## Locations — `client.Locations`
 
-```csharp
-var response = await client.GetJobsFeedAsync(new JobFeedRequest
-{
-    Locations =
-    [
-        new LocationFilter { Country = "US", Region = "California" },
-        new LocationFilter { Country = "US", City = "New York" }
-    ],
-    Sources = ["greenhouse", "workday"],
-    IsRemote = true,
-    BatchSize = 1000
-});
-
-Console.WriteLine($"Got {response.Jobs.Count} jobs, HasMore={response.HasMore}");
-
-// Continue with cursor
-if (response.HasMore)
-{
-    var next = await client.GetJobsFeedAsync(new JobFeedRequest
-    {
-        Cursor = response.NextCursor,
-        BatchSize = 1000
-    });
-}
-```
-
-### Auto-Paginated Feed
-
-Stream all jobs without managing cursors:
+Geocode location strings into structured data with coordinates.
 
 ```csharp
-await foreach (var job in client.EnumerateJobsFeedAsync(new JobFeedRequest
-{
-    Sources = ["greenhouse"],
-    BatchSize = 1000
-}))
-{
-    await SaveToDatabaseAsync(job);
-}
+var result = await client.Locations.GeocodeAsync("San Francisco, CA");
+
+foreach (var location in result.Locations)
+    Console.WriteLine($"{location.DisplayName}: {location.Latitude}, {location.Longitude}");
 ```
 
-### Expired Job IDs
+---
 
-Keep your job board fresh by syncing expired listings:
+## Auto Apply — `client.AutoApply`
+
+Automate job applications with form field discovery and filling.
 
 ```csharp
-var expiredSince = DateTime.UtcNow.AddDays(-1);
+// Start a session
+var session = await client.AutoApply.StartSessionAsync(job.ApplyUrl);
 
-await foreach (var jobId in client.EnumerateExpiredJobIdsAsync(expiredSince))
+Console.WriteLine($"Provider: {session.ProviderDisplayName}");
+Console.WriteLine($"Fields: {session.Fields.Count}");
+
+// Fill in fields
+var answers = new List<FieldAnswer>
 {
-    await MarkAsExpiredAsync(jobId);
-}
+    new() { FieldId = "first_name", Value = "John" },
+    new() { FieldId = "last_name", Value = "Doe" },
+    new() { FieldId = "email", Value = "john@example.com" },
+};
+
+var result = await client.AutoApply.SetAnswersAsync(session.SessionId, answers);
+
+if (result.IsTerminal)
+    Console.WriteLine("Application submitted!");
+
+// Clean up
+await client.AutoApply.EndSessionAsync(session.SessionId);
 ```
+
+---
 
 ## Error Handling
-
-The client throws typed exceptions for different error scenarios:
 
 ```csharp
 using Jobo.Enterprise.Client.Exceptions;
 
 try
 {
-    var results = await client.SearchJobsAsync(q: "engineer");
+    var results = await client.Search.SearchAsync(q: "engineer");
 }
 catch (JoboAuthenticationException)
 {
-    Console.WriteLine("Invalid API key — get one at https://enterprise.jobo.world/api-keys");
+    Console.WriteLine("Invalid API key");
 }
 catch (JoboRateLimitException ex)
 {
@@ -242,64 +240,35 @@ catch (JoboServerException)
 {
     Console.WriteLine("Server error — try again later");
 }
-catch (JoboException ex)
-{
-    Console.WriteLine($"Unexpected error: {ex.Message}");
-}
 ```
-
-## Models
-
-All response data is returned as strongly-typed models:
-
-| Model | Description |
-|---|---|
-| `Job` | A job listing with title, company, locations, compensation, etc. |
-| `JobCompany` | Company ID and name |
-| `JobLocation` | City, state, country, coordinates |
-| `JobCompensation` | Min/max salary, currency, period |
-| `LocationFilter` | Structured filter for feed endpoint |
-| `JobFeedResponse` | Feed response with cursor pagination |
-| `ExpiredJobIdsResponse` | Expired job IDs with cursor pagination |
-| `JobSearchResponse` | Search response with page-based pagination |
 
 ## Supported ATS Sources (45+)
 
-Filter jobs by any of these applicant tracking systems:
-
-| Category | Sources |
-|---|---|
-| **Enterprise ATS** | `workday`, `smartrecruiters`, `icims`, `successfactors`, `oraclecloud`, `taleo`, `dayforce`, `csod` (Cornerstone), `adp`, `ultipro`, `paycom` |
-| **Tech & Startup** | `greenhouse`, `lever_co`, `ashby`, `workable`, `workable_jobs`, `rippling`, `polymer`, `gem`, `pinpoint`, `homerun` |
-| **Mid-Market** | `bamboohr`, `breezy`, `jazzhr`, `recruitee`, `personio`, `jobvite`, `teamtailor`, `comeet`, `trakstar`, `zoho` |
-| **SMB & Niche** | `gohire`, `recooty`, `applicantpro`, `hiringthing`, `careerplug`, `hirehive`, `kula`, `careerpuck`, `talnet`, `jobscore` |
-| **Specialized** | `freshteam`, `isolved`, `joincom`, `eightfold`, `phenompeople` (via `eightfold`) |
-
-> Pass source identifiers in the `Sources` parameter, e.g. `Sources = ["greenhouse", "lever_co", "workday"]`
+| Category           | Sources                                                                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise ATS** | `workday`, `smartrecruiters`, `icims`, `successfactors`, `oraclecloud`, `taleo`, `dayforce`, `csod`, `adp`, `ultipro`, `paycom`               |
+| **Tech & Startup** | `greenhouse`, `lever_co`, `ashby`, `workable`, `workable_jobs`, `rippling`, `polymer`, `gem`, `pinpoint`, `homerun`                           |
+| **Mid-Market**     | `bamboohr`, `breezy`, `jazzhr`, `recruitee`, `personio`, `jobvite`, `teamtailor`, `comeet`, `trakstar`, `zoho`                                |
+| **SMB & Niche**    | `gohire`, `recooty`, `applicantpro`, `hiringthing`, `careerplug`, `hirehive`, `kula`, `careerpuck`, `talnet`, `jobscore`                      |
+| **Specialized**    | `freshteam`, `isolved`, `joincom`, `eightfold`, `phenompeople`                                                                                |
 
 ## Configuration
 
-| Property | Default | Description |
-|---|---|---|
-| `ApiKey` | *required* | Your Jobo Enterprise API key ([get one here](https://enterprise.jobo.world/api-keys)) |
-| `BaseUrl` | `https://jobs-api.jobo.world` | API base URL |
-| `Timeout` | `00:00:30` | Request timeout |
+| Property  | Default                       | Description          |
+| --------- | ----------------------------- | -------------------- |
+| `ApiKey`  | _required_                    | Your API key         |
+| `BaseUrl` | `https://jobs-api.jobo.world` | API base URL         |
+| `Timeout` | `00:00:30`                    | Request timeout      |
 
 ## Custom HttpClient
-
-You can provide your own `HttpClient` for advanced scenarios (e.g., Polly retry policies):
 
 ```csharp
 var httpClient = new HttpClient { BaseAddress = new Uri("https://jobs-api.jobo.world") };
 httpClient.DefaultRequestHeaders.Add("X-Api-Key", "your-api-key");
 
 var client = new JoboClient(httpClient);
+// client.Feed, client.Search, client.Locations, client.AutoApply are all available
 ```
-
-## Target Frameworks
-
-- .NET 8.0
-- .NET 6.0
 
 ## Use Cases
 
@@ -307,49 +276,13 @@ var client = new JoboClient(httpClient);
 - **Job aggregator** — Bulk-sync millions of listings with the feed endpoint
 - **ATS data pipeline** — Pull jobs from Greenhouse, Lever, Workday, etc. into your data warehouse
 - **Recruitment tools** — Power candidate-facing job search experiences
-- **Market research** — Analyze hiring trends across companies and industries
+- **Auto-apply automation** — Automate job applications at scale
+- **Location intelligence** — Geocode and normalize job locations
 
-## Development
+## Target Frameworks
 
-```bash
-git clone https://github.com/Prakkie91/jobo-dotnet.git
-cd jobo-dotnet
-
-# Build
-dotnet build
-
-# Test
-dotnet test
-
-# Pack
-dotnet pack -c Release
-```
-
-## Publishing to NuGet
-
-```bash
-# Build the package
-dotnet pack -c Release
-
-# Push to NuGet (replace YOUR_NUGET_API_KEY)
-dotnet nuget push bin/Release/Jobo.Enterprise.Client.*.nupkg --api-key YOUR_NUGET_API_KEY --source https://api.nuget.org/v3/index.json
-
-# Tag and push to GitHub
-git tag v$(grep -oPm1 '(?<=<Version>)[^<]+' Jobo.Enterprise.Client.csproj)
-git push origin main --tags
-```
-
-## Pushing to GitHub
-
-```bash
-# Initial setup (one-time)
-git remote set-url origin https://github.com/Prakkie91/jobo-dotnet.git
-
-# Push
-git add -A
-git commit -m "release: v$(grep -oPm1 '(?<=<Version>)[^<]+' Jobo.Enterprise.Client.csproj)"
-git push origin main
-```
+- .NET 8.0
+- .NET 6.0
 
 ## Links
 
