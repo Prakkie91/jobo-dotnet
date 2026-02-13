@@ -43,7 +43,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return; // skip
 
-        var response = await Client.GetJobsFeedAsync(new JobFeedRequest { BatchSize = 5 });
+        var response = await Client.Feed.GetJobsAsync(new JobFeedRequest { BatchSize = 5 });
 
         Assert.NotNull(response);
         Assert.NotEmpty(response.Jobs);
@@ -64,7 +64,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var response = await Client.GetJobsFeedAsync(new JobFeedRequest
+        var response = await Client.Feed.GetJobsAsync(new JobFeedRequest
         {
             Locations = new List<LocationFilter>
             {
@@ -82,14 +82,14 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var first = await Client.GetJobsFeedAsync(new JobFeedRequest { BatchSize = 2 });
+        var first = await Client.Feed.GetJobsAsync(new JobFeedRequest { BatchSize = 2 });
         Assert.NotEmpty(first.Jobs);
 
         if (!first.HasMore) return; // small dataset, can't test pagination
 
         Assert.False(string.IsNullOrEmpty(first.NextCursor));
 
-        var second = await Client.GetJobsFeedAsync(new JobFeedRequest
+        var second = await Client.Feed.GetJobsAsync(new JobFeedRequest
         {
             Cursor = first.NextCursor,
             BatchSize = 2
@@ -107,7 +107,7 @@ public class IntegrationTests : IDisposable
         if (_client is null) return;
 
         var jobs = new List<Job>();
-        await foreach (var job in Client.EnumerateJobsFeedAsync(new JobFeedRequest { BatchSize = 3 }))
+        await foreach (var job in Client.Feed.EnumerateJobsAsync(new JobFeedRequest { BatchSize = 3 }))
         {
             jobs.Add(job);
             if (jobs.Count >= 5) break; // limit for test speed
@@ -123,7 +123,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var response = await Client.GetExpiredJobIdsAsync(
+        var response = await Client.Feed.GetExpiredJobIdsAsync(
             expiredSince: DateTime.UtcNow.AddDays(-6),
             batchSize: 5
         );
@@ -140,7 +140,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var response = await Client.SearchJobsAsync(q: "software engineer", pageSize: 5);
+        var response = await Client.Search.SearchAsync(q: "software engineer", pageSize: 5);
 
         Assert.NotNull(response);
         Assert.NotEmpty(response.Jobs);
@@ -154,7 +154,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var response = await Client.SearchJobsAdvancedAsync(new JobSearchRequest
+        var response = await Client.Search.SearchAdvancedAsync(new JobSearchRequest
         {
             Queries = new List<string> { "data engineer" },
             PageSize = 5
@@ -170,7 +170,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var response = await Client.SearchJobsAdvancedAsync(new JobSearchRequest
+        var response = await Client.Search.SearchAdvancedAsync(new JobSearchRequest
         {
             Queries = new List<string> { "developer" },
             Locations = new List<string> { "New York" },
@@ -187,7 +187,7 @@ public class IntegrationTests : IDisposable
         if (_client is null) return;
 
         var jobs = new List<Job>();
-        await foreach (var job in Client.EnumerateSearchJobsAsync(new JobSearchRequest
+        await foreach (var job in Client.Search.EnumerateAsync(new JobSearchRequest
         {
             Queries = new List<string> { "engineer" },
             PageSize = 3
@@ -212,7 +212,7 @@ public class IntegrationTests : IDisposable
         });
 
         await Assert.ThrowsAsync<JoboAuthenticationException>(
-            () => badClient.GetJobsFeedAsync(new JobFeedRequest { BatchSize = 1 })
+            () => badClient.Feed.GetJobsAsync(new JobFeedRequest { BatchSize = 1 })
         );
     }
 
@@ -223,7 +223,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var response = await Client.SearchJobsAsync(q: "engineer", pageSize: 1);
+        var response = await Client.Search.SearchAsync(q: "engineer", pageSize: 1);
         Assert.NotEmpty(response.Jobs);
 
         var job = response.Jobs[0];
@@ -248,7 +248,7 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var result = await Client.GeocodeAsync("San Francisco, CA");
+        var result = await Client.Locations.GeocodeAsync("San Francisco, CA");
 
         Assert.NotNull(result);
         Assert.Equal("San Francisco, CA", result.Input);
@@ -265,33 +265,33 @@ public class IntegrationTests : IDisposable
     {
         if (_client is null) return;
 
-        var result = await Client.GeocodeAsync("invalidlocationxyz123");
+        var result = await Client.Locations.GeocodeAsync("invalidlocationxyz123");
 
         Assert.NotNull(result);
         // May succeed with remote keyword parsing or fail - just check response
     }
 
-    // ── AutoApply ─────────────────────────────────────────────────────
+    // ── AutoApply (disabled – not yet implemented) ──────────────────
 
-    [Fact]
+    [Fact(Skip = "Auto Apply is not yet implemented")]
     public async Task StartAutoApplySession_WithInvalidUrl_ReturnsError()
     {
         if (_client is null) return;
 
         // Using an invalid URL should return success=false with an error
-        var response = await Client.StartAutoApplySessionAsync("https://invalid-url-that-does-not-exist.com/jobs/123");
+        var response = await Client.AutoApply.StartSessionAsync("https://invalid-url-that-does-not-exist.com/jobs/123");
 
         Assert.NotNull(response);
         // The provider detection may fail or succeed - just check response structure
         Assert.NotEqual(Guid.Empty, response.SessionId);
     }
 
-    [Fact]
+    [Fact(Skip = "Auto Apply is not yet implemented")]
     public async Task EndAutoApplySession_WithInvalidSession_ReturnsFalse()
     {
         if (_client is null) return;
 
-        var result = await Client.EndAutoApplySessionAsync(Guid.NewGuid());
+        var result = await Client.AutoApply.EndSessionAsync(Guid.NewGuid());
 
         // Should return false for non-existent session
         Assert.False(result);
