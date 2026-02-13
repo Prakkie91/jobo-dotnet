@@ -68,7 +68,7 @@ public class IntegrationTests : IDisposable
         {
             Locations = new List<LocationFilter>
             {
-                new() { Country = "US" }
+                new() { Country = "United States" }
             },
             BatchSize = 5
         });
