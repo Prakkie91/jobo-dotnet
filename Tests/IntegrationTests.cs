@@ -97,8 +97,13 @@ public class IntegrationTests : IDisposable
 
         Assert.NotNull(second);
         Assert.NotEmpty(second.Jobs);
-        // Ensure we got different jobs
-        Assert.NotEqual(first.Jobs[0].Id, second.Jobs[0].Id);
+        // The feed mutates live (jobs get re-scraped and bubble back toward the
+        // top), so a single job can legitimately re-surface across a page
+        // boundary. Assert the page advanced — at least one job on page 2 was
+        // not on page 1 — rather than comparing the first element, which flakes
+        // on a moving dataset.
+        var firstIds = first.Jobs.Select(j => j.Id).ToHashSet();
+        Assert.Contains(second.Jobs, j => !firstIds.Contains(j.Id));
     }
 
     [Fact]
