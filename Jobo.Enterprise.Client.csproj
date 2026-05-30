@@ -17,7 +17,7 @@
     <PackageIcon>jobo-logo.png</PackageIcon>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://jobo.world/enterprise/</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Prakkie91/jobo-dotnet.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/prakkie91/jobo-dotnet.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
