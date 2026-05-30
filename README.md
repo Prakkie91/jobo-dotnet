@@ -318,13 +318,13 @@ catch (JoboServerException)
 | Property  | Default                       | Description          |
 | --------- | ----------------------------- | -------------------- |
 | `ApiKey`  | _required_                    | Your API key         |
-| `BaseUrl` | `https://jobs-api.jobo.world` | API base URL         |
+| `BaseUrl` | `https://connect.jobo.world` | API base URL         |
 | `Timeout` | `00:00:30`                    | Request timeout      |
 
 ## Custom HttpClient
 
 ```csharp
-var httpClient = new HttpClient { BaseAddress = new Uri("https://jobs-api.jobo.world") };
+var httpClient = new HttpClient { BaseAddress = new Uri("https://connect.jobo.world") };
 httpClient.DefaultRequestHeaders.Add("X-Api-Key", "your-api-key");
 
 var client = new JoboClient(httpClient);

@@ -18,7 +18,7 @@ public class IntegrationTests : IDisposable
     public IntegrationTests()
     {
         var apiKey = Environment.GetEnvironmentVariable("JOBO_API_KEY");
-        var baseUrl = Environment.GetEnvironmentVariable("JOBO_BASE_URL") ?? "https://jobs-api.jobo.world";
+        var baseUrl = Environment.GetEnvironmentVariable("JOBO_BASE_URL") ?? "https://connect.jobo.world";
 
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -208,7 +208,7 @@ public class IntegrationTests : IDisposable
         using var badClient = new JoboClient(new JoboClientOptions
         {
             ApiKey = "invalid-key-12345",
-            BaseUrl = Environment.GetEnvironmentVariable("JOBO_BASE_URL") ?? "https://jobs-api.jobo.world"
+            BaseUrl = Environment.GetEnvironmentVariable("JOBO_BASE_URL") ?? "https://connect.jobo.world"
         });
 
         await Assert.ThrowsAsync<JoboAuthenticationException>(

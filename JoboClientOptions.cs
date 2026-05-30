@@ -11,9 +11,9 @@ public sealed class JoboClientOptions
     public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// API base URL. Defaults to <c>https://jobs-api.jobo.world</c>.
+    /// API base URL. Defaults to <c>https://connect.jobo.world</c>.
     /// </summary>
-    public string BaseUrl { get; set; } = "https://jobs-api.jobo.world";
+    public string BaseUrl { get; set; } = "https://connect.jobo.world";
 
     /// <summary>
     /// Request timeout. Defaults to 30 seconds.
