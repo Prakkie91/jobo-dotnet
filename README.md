@@ -137,13 +137,19 @@ var results = await client.Search.SearchAsync(
     q: "data scientist",
     location: "New York",
     sources: "greenhouse,lever",
-    workModel: "remote",
+    workModel: WorkModel.Remote, // or just "remote"
     minSalaryUsd: 120000,
     pageSize: 50
 );
 
 Console.WriteLine($"Found {results.Total} jobs across {results.TotalPages} pages");
 ```
+
+> **Closed value sets.** Parameters with a fixed set of accepted values expose
+> their known values as `const string` fields for discoverability — `WorkModel`,
+> `EmploymentType`, `ExperienceLevel`, `CompensationPeriod`, and `SkillType`.
+> The methods still take `string`, so passing the literal (e.g. `"remote"`) is
+> always valid too.
 
 ### Advanced search (multiple queries, filters & facets)
 
