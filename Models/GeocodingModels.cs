@@ -39,11 +39,6 @@ public sealed class GeocodeResultItem
 public sealed class GeocodedLocation
 {
     /// <summary>
-    /// Display name of the location.
-    /// </summary>
-    [JsonPropertyName("display_name")] public string DisplayName { get; set; } = string.Empty;
-
-    /// <summary>
     /// City name.
     /// </summary>
     [JsonPropertyName("city")] public string? City { get; set; }
@@ -59,11 +54,6 @@ public sealed class GeocodedLocation
     [JsonPropertyName("country")] public string? Country { get; set; }
 
     /// <summary>
-    /// Two-letter country code.
-    /// </summary>
-    [JsonPropertyName("country_code")] public string? CountryCode { get; set; }
-
-    /// <summary>
     /// Latitude coordinate.
     /// </summary>
     [JsonPropertyName("latitude")] public double? Latitude { get; set; }
@@ -72,4 +62,19 @@ public sealed class GeocodedLocation
     /// Longitude coordinate.
     /// </summary>
     [JsonPropertyName("longitude")] public double? Longitude { get; set; }
+
+    /// <summary>
+    /// Display name of the location.
+    /// </summary>
+    [JsonPropertyName("display_name")] public string? DisplayName { get; set; }
+
+    /// <summary>
+    /// Two-letter country code.
+    /// </summary>
+    [JsonPropertyName("country_code")] public string? CountryCode { get; set; }
+
+    /// <summary>
+    /// Confidence score when the location was fuzzily matched.
+    /// </summary>
+    [JsonPropertyName("fuzzy_confidence")] public double? FuzzyConfidence { get; set; }
 }

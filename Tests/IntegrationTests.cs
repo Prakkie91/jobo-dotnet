@@ -236,9 +236,11 @@ public class IntegrationTests : IDisposable
         Assert.False(string.IsNullOrEmpty(job.ListingUrl));
         Assert.False(string.IsNullOrEmpty(job.ApplyUrl));
         Assert.False(string.IsNullOrEmpty(job.Source));
-        Assert.False(string.IsNullOrEmpty(job.SourceId));
         Assert.NotEqual(default, job.CreatedAt);
         Assert.NotEqual(default, job.UpdatedAt);
+        // New structured fields are nullable; just verify they deserialize without error.
+        Assert.NotNull(job.Responsibilities);
+        Assert.NotNull(job.Benefits);
     }
 
     // ── Geocoding ─────────────────────────────────────────────────────

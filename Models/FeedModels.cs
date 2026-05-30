@@ -13,13 +13,13 @@ public sealed class LocationFilter
 }
 
 /// <summary>
-/// Request body for the jobs feed endpoint (POST /api/feed/jobs).
+/// Request body for the jobs feed endpoint (POST /api/jobs/feed).
 /// </summary>
 public sealed class JobFeedRequest
 {
     [JsonPropertyName("locations")] public List<LocationFilter>? Locations { get; set; }
     [JsonPropertyName("sources")] public List<string>? Sources { get; set; }
-    [JsonPropertyName("is_remote")] public bool? IsRemote { get; set; }
+    [JsonPropertyName("work_models")] public List<string>? WorkModels { get; set; }
     [JsonPropertyName("posted_after")] public DateTime? PostedAfter { get; set; }
     [JsonPropertyName("cursor")] public string? Cursor { get; set; }
     [JsonPropertyName("batch_size")] public int BatchSize { get; set; } = 1000;

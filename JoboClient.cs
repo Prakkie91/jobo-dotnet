@@ -7,6 +7,7 @@ namespace Jobo.Enterprise.Client;
 /// <list type="bullet">
 ///   <item><see cref="Feed"/> — Bulk job feed with cursor-based pagination</item>
 ///   <item><see cref="Search"/> — Full-text job search with filters</item>
+///   <item><see cref="Companies"/> — Enriched company profiles and per-company job listings</item>
 ///   <item><see cref="Locations"/> — Geocoding and location resolution</item>
 ///   <item><see cref="AutoApply"/> — Automated job application form filling</item>
 /// </list>
@@ -29,6 +30,11 @@ public sealed class JoboClient : IDisposable
     public JobsSearchClient Search { get; }
 
     /// <summary>
+    /// Enriched company profiles and per-company job listings.
+    /// </summary>
+    public CompaniesClient Companies { get; }
+
+    /// <summary>
     /// Geocoding and location resolution.
     /// </summary>
     public LocationsClient Locations { get; }
@@ -49,12 +55,13 @@ public sealed class JoboClient : IDisposable
             Timeout = options.Timeout
         };
         _httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "jobo-dotnet/2.0.0");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "jobo-dotnet/3.0.0");
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
         _ownsHttpClient = true;
 
         Feed = new JobsFeedClient(_httpClient);
         Search = new JobsSearchClient(_httpClient);
+        Companies = new CompaniesClient(_httpClient);
         Locations = new LocationsClient(_httpClient);
         AutoApply = new AutoApplyClient(_httpClient);
     }
@@ -70,6 +77,7 @@ public sealed class JoboClient : IDisposable
 
         Feed = new JobsFeedClient(_httpClient);
         Search = new JobsSearchClient(_httpClient);
+        Companies = new CompaniesClient(_httpClient);
         Locations = new LocationsClient(_httpClient);
         AutoApply = new AutoApplyClient(_httpClient);
     }
