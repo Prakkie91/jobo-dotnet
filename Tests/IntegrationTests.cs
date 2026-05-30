@@ -243,6 +243,46 @@ public class IntegrationTests : IDisposable
         Assert.NotNull(job.Benefits);
     }
 
+    // ── Companies ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetCompany_AndJobs_ReturnsData()
+    {
+        if (_client is null) return;
+
+        // Resolve a company id from a search result, then fetch its profile + jobs.
+        var search = await Client.Search.SearchAsync(q: "engineer", pageSize: 1);
+        if (search.Jobs.Count == 0) return; // no jobs available to resolve a company id
+
+        var companyId = search.Jobs[0].Company.Id;
+
+        var company = await Client.Companies.GetAsync(companyId);
+        Assert.Equal(companyId, company.Id);
+        Assert.False(string.IsNullOrEmpty(company.Name));
+
+        var jobs = await Client.Companies.GetJobsAsync(companyId, pageSize: 5);
+        Assert.NotNull(jobs);
+        Assert.Equal(1, jobs.Page);
+    }
+
+    // ── Search facets ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SearchAdvanced_ReturnsFacets()
+    {
+        if (_client is null) return;
+
+        var response = await Client.Search.SearchAdvancedAsync(new JobSearchRequest
+        {
+            Queries = new List<string> { "engineer" },
+            IncludeFacets = new List<string> { "work_model", "experience_level" },
+            PageSize = 5
+        });
+
+        Assert.NotNull(response);
+        Assert.NotNull(response.Facets);
+    }
+
     // ── Geocoding ─────────────────────────────────────────────────────
 
     [Fact]
