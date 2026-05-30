@@ -9,7 +9,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Jobo.Enterprise.Client</PackageId>
-    <Version>2.0.0</Version>
+    <Version>3.0.0</Version>
     <Authors>Jobo</Authors>
     <Company>Jobo</Company>
     <Description>Official .NET client library for the Jobo Enterprise API. Access millions of job listings from 45+ ATS platforms, geocode locations, and automate job applications. Organized by feature area: Jobs Feed, Search, Locations, and Auto Apply.</Description>

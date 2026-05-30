@@ -5,7 +5,7 @@ using Jobo.Enterprise.Client.Models;
 namespace Jobo.Enterprise.Client;
 
 /// <summary>
-/// Sub-client for the Jobs Feed endpoints (POST /api/feed/jobs, GET /api/feed/jobs/expired).
+/// Sub-client for the Jobs Feed endpoints (POST /api/jobs/feed, GET /api/jobs/expired).
 /// Access via <see cref="JoboClient.Feed"/>.
 /// </summary>
 public sealed class JobsFeedClient : JoboClientBase
@@ -22,7 +22,7 @@ public sealed class JobsFeedClient : JoboClientBase
         JobFeedRequest request,
         CancellationToken cancellationToken = default)
     {
-        return await PostAsync<JobFeedResponse>("/api/feed/jobs", request, cancellationToken);
+        return await PostAsync<JobFeedResponse>("/api/jobs/feed", request, cancellationToken);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public sealed class JobsFeedClient : JoboClientBase
         if (!string.IsNullOrEmpty(cursor))
             query["cursor"] = cursor;
 
-        return await GetAsync<ExpiredJobIdsResponse>($"/api/feed/jobs/expired?{query}", cancellationToken);
+        return await GetAsync<ExpiredJobIdsResponse>($"/api/jobs/expired?{query}", cancellationToken);
     }
 
     /// <summary>

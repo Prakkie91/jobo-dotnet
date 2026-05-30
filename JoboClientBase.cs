@@ -31,6 +31,13 @@ public abstract class JoboClientBase
         return await response.Content.ReadFromJsonAsync<T>(JsonOptions, ct) ?? new T();
     }
 
+    internal async Task<T> PutAsync<T>(string path, object body, CancellationToken ct) where T : new()
+    {
+        var response = await HttpClient.PutAsJsonAsync(path, body, JsonOptions, ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions, ct) ?? new T();
+    }
+
     internal async Task<T> GetAsync<T>(string path, CancellationToken ct) where T : new()
     {
         var response = await HttpClient.GetAsync(path, ct);

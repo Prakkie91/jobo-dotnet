@@ -15,9 +15,10 @@
 | Sub-client          | Property           | Description                                              |
 | ------------------- | ------------------ | -------------------------------------------------------- |
 | **Jobs Feed**       | `client.Feed`      | Bulk job feed with cursor-based pagination (45+ ATS)     |
-| **Jobs Search**     | `client.Search`    | Full-text search with location, remote, and source filters |
+| **Jobs Search**     | `client.Search`    | Full-text search with location, work-model, and source filters |
+| **Companies**       | `client.Companies` | Enriched company profiles and per-company job listings   |
 | **Locations**       | `client.Locations` | Geocode location strings into structured coordinates     |
-| **Auto Apply**      | `client.AutoApply` | Automate job applications with form field discovery      |
+| **Auto Apply**      | `client.AutoApply` | Automate job applications: sessions, stored profiles, one-shot runs |
 
 > **Get your API key** → [enterprise.jobo.world/api-keys](https://enterprise.jobo.world/api-keys)
 
@@ -94,7 +95,7 @@ var response = await client.Feed.GetJobsAsync(new JobFeedRequest
         new LocationFilter { Country = "US", City = "New York" }
     ],
     Sources = ["greenhouse", "workday"],
-    IsRemote = true,
+    WorkModels = ["remote", "hybrid"],
     BatchSize = 1000
 });
 
@@ -136,24 +137,39 @@ var results = await client.Search.SearchAsync(
     q: "data scientist",
     location: "New York",
     sources: "greenhouse,lever",
-    remote: true,
+    workModel: WorkModel.Remote, // or just "remote"
+    minSalaryUsd: 120000,
     pageSize: 50
 );
 
 Console.WriteLine($"Found {results.Total} jobs across {results.TotalPages} pages");
 ```
 
-### Advanced search (multiple queries & locations)
+> **Closed value sets.** Parameters with a fixed set of accepted values expose
+> their known values as `const string` fields for discoverability — `WorkModel`,
+> `EmploymentType`, `ExperienceLevel`, `CompensationPeriod`, and `SkillType`.
+> The methods still take `string`, so passing the literal (e.g. `"remote"`) is
+> always valid too.
+
+### Advanced search (multiple queries, filters & facets)
 
 ```csharp
 var results = await client.Search.SearchAdvancedAsync(new JobSearchRequest
 {
     Queries = ["machine learning engineer", "ML engineer", "AI engineer"],
-    Locations = ["San Francisco", "New York", "Remote"],
+    Locations = ["San Francisco", "New York"],
     Sources = ["greenhouse", "lever", "ashby"],
-    IsRemote = true,
+    WorkModels = ["remote", "hybrid"],
+    Skills = new InclusionExclusionFilter { Include = ["python", "pytorch"], Exclude = ["php"] },
+    SalaryUsd = new RangeFilter { Min = 150000 },
+    IncludeFacets = ["source", "experience_level"],
     PageSize = 100
 });
+
+// Inspect aggregated facet counts
+foreach (var (facet, buckets) in results.Facets)
+foreach (var bucket in buckets)
+    Console.WriteLine($"{facet}: {bucket.Key} ({bucket.Count})");
 ```
 
 ### Auto-paginate all results
@@ -168,6 +184,23 @@ await foreach (var job in client.Search.EnumerateAsync(new JobSearchRequest
 {
     Console.WriteLine($"{job.Title} — {job.Company.Name}");
 }
+```
+
+---
+
+## Companies — `client.Companies`
+
+Fetch enriched company profiles and list jobs scoped to a single company.
+
+```csharp
+// Full enriched profile (this endpoint is public — no API key required)
+var company = await client.Companies.GetAsync(companyId);
+Console.WriteLine($"{company.Name} — {company.Website}");
+
+// Jobs for that company, newest first
+var jobs = await client.Companies.GetJobsAsync(companyId, page: 1, pageSize: 25);
+foreach (var job in jobs.Jobs)
+    Console.WriteLine($"{job.Title} ({job.WorkplaceType})");
 ```
 
 ---
@@ -189,6 +222,8 @@ foreach (var location in result.Locations)
 
 Automate job applications with form field discovery and filling.
 
+### Interactive session flow
+
 ```csharp
 // Start a session
 var session = await client.AutoApply.StartSessionAsync(job.ApplyUrl);
@@ -196,12 +231,12 @@ var session = await client.AutoApply.StartSessionAsync(job.ApplyUrl);
 Console.WriteLine($"Provider: {session.ProviderDisplayName}");
 Console.WriteLine($"Fields: {session.Fields.Count}");
 
-// Fill in fields
+// Fill in fields — Type must match the discovered FormFieldInfo.Type
 var answers = new List<FieldAnswer>
 {
-    new() { FieldId = "first_name", Value = "John" },
-    new() { FieldId = "last_name", Value = "Doe" },
-    new() { FieldId = "email", Value = "john@example.com" },
+    new() { FieldId = "first_name", Type = "text", Value = "John" },
+    new() { FieldId = "last_name", Type = "text", Value = "Doe" },
+    new() { FieldId = "email", Type = "text", Value = "john@example.com" },
 };
 
 var result = await client.AutoApply.SetAnswersAsync(session.SessionId, answers);
@@ -211,6 +246,32 @@ if (result.IsTerminal)
 
 // Clean up
 await client.AutoApply.EndSessionAsync(session.SessionId);
+```
+
+### Stored profiles & one-shot runs
+
+Save an applicant profile once, then run the whole flow end-to-end against any apply URL.
+
+```csharp
+// Create a reusable profile
+var profile = await client.AutoApply.CreateProfileAsync(new AutoApplyProfileRequest
+{
+    Name = "Primary",
+    FirstName = "John",
+    LastName = "Doe",
+    Email = "john@example.com",
+    Phone = "+1 555 0100",
+    WorkAuthorization = "us_citizen"
+});
+
+// Run the full auto-apply flow against a job in one call
+var run = await client.AutoApply.RunAsync(profile.Id, job.ApplyUrl);
+Console.WriteLine($"Success={run.Success} status={run.Status} fields={run.FieldsFilled}");
+
+// Manage profiles
+var all = await client.AutoApply.ListProfilesAsync();
+await client.AutoApply.UpdateProfileAsync(profile.Id, new AutoApplyProfileRequest { /* ... */ });
+await client.AutoApply.DeleteProfileAsync(profile.Id);
 ```
 
 ---
@@ -257,17 +318,17 @@ catch (JoboServerException)
 | Property  | Default                       | Description          |
 | --------- | ----------------------------- | -------------------- |
 | `ApiKey`  | _required_                    | Your API key         |
-| `BaseUrl` | `https://jobs-api.jobo.world` | API base URL         |
+| `BaseUrl` | `https://connect.jobo.world` | API base URL         |
 | `Timeout` | `00:00:30`                    | Request timeout      |
 
 ## Custom HttpClient
 
 ```csharp
-var httpClient = new HttpClient { BaseAddress = new Uri("https://jobs-api.jobo.world") };
+var httpClient = new HttpClient { BaseAddress = new Uri("https://connect.jobo.world") };
 httpClient.DefaultRequestHeaders.Add("X-Api-Key", "your-api-key");
 
 var client = new JoboClient(httpClient);
-// client.Feed, client.Search, client.Locations, client.AutoApply are all available
+// client.Feed, client.Search, client.Companies, client.Locations, client.AutoApply are all available
 ```
 
 ## Use Cases
